@@ -16,7 +16,7 @@ const Peer = require('./peer.js')
 const utils = require('./utils.js')
 require('setimmediate')
 
-const { nspvReq, nspvResp } = require('../../../kmdtypes');
+const { nspvReq, nspvResp } = require('bitcoin-protocol').kmdtypes;
 
 
 const DEFAULT_PXP_PORT = 8192 // default port for peer-exchange nodes
