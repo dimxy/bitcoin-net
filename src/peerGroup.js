@@ -16,6 +16,9 @@ const Peer = require('./peer.js')
 const utils = require('./utils.js')
 require('setimmediate')
 
+const { nspvReq, nspvResp } = require('../../../kmdtypes');
+
+
 const DEFAULT_PXP_PORT = 8192 // default port for peer-exchange nodes
 
 class PeerGroup extends EventEmitter {
@@ -69,6 +72,12 @@ class PeerGroup extends EventEmitter {
     this.on('tx', (tx) => {
       this.emit(`tx:${utils.getTxHash(tx).toString('base64')}`, tx)
     })
+    
+    this.on('nSPV', (buf) => {
+      let resp = nspvResp.decode(buf);
+      this.emit(`nSPV:${resp.respCode}`, resp)
+    })
+
     this.once('peer', () => this.emit('connect'))
   }
 
@@ -322,6 +331,10 @@ class PeerGroup extends EventEmitter {
 
   getHeaders (locator, opts, cb) {
     this._request('getHeaders', locator, opts, cb)
+  }
+
+  getUtxos (address, isCC, opts, cb) {
+    this._request('getUtxos', address, isCC, opts, cb)
   }
 
   // calls a method on a random peer,

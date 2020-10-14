@@ -1,6 +1,8 @@
 const url = require('url')
-const encodeHeader = require('bitcoin-protocol').types.header.encode
-const encodeTx = require('bitcoin-protocol').types.transaction.encode
+//const encodeHeader = require('bitcoin-protocol').types.header.encode
+const encodeHeader = require('bitcoin-protocol').kmdtypes.header.encode
+//const encodeTx = require('bitcoin-protocol').types.transaction.encode
+const encodeTx = require('bitcoin-protocol').kmdtypes.transaction.encode
 // TODO: create-hash package
 const { createHash } = require('crypto')
 

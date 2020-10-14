@@ -14,6 +14,9 @@ const EventEmitter = require('events')
 const pkg = require('../package.json')
 const utils = require('./utils.js')
 
+const { NSPVREQ, NSPVRESP} = require('../../../kmdtypes');
+const { nspvReq, nspvResp } = require('../../../kmdtypes');
+
 const SERVICES_SPV = Buffer.from('0800000000000000', 'hex')
 const SERVICES_FULL = Buffer.from('0100000000000000', 'hex')
 const BLOOMSERVICE_VERSION = 70011
@@ -194,6 +197,11 @@ class Peer extends EventEmitter {
     })
     this.on('tx', (tx) => {
       this.emit(`tx:${utils.getTxHash(tx).toString('base64')}`, tx)
+    })
+
+    this.on('nSPV', (buf) => {
+      let resp = nspvResp.decode(buf);
+      this.emit(`nSPV:${resp.respCode}`, resp);
     })
   }
 
@@ -390,6 +398,40 @@ class Peer extends EventEmitter {
       error.timeout = true
       cb(error)
       this._nextHeadersRequest()
+    }, opts.timeout)
+  }
+
+  getUtxos (address, isCC, opts, cb) {
+    if (typeof opts === 'function') {
+      cb = opts
+      opts = {}
+    }
+    if (opts.timeout == null) opts.timeout = this._getTimeout()
+
+    var timeout
+    var onNspvResp = (resp) => {
+      if (timeout) clearTimeout(timeout)
+      cb(null, resp)
+      //this._nextHeadersRequest()  // TODO: do we also need call to next?
+    }
+    this.once(`nSPV:${NSPVRESP.NSPV_UTXOSRESP}`, onNspvResp)
+
+    let nspvReqUtxos = {
+      reqCode: NSPVREQ.NSPV_UTXOS,
+      coinaddr: address,
+      CCflag: isCC ? 1 : 0,
+      skipcount: 0,
+      filter: 0
+    }
+    let buf = nspvReq.encode(nspvReqUtxos)
+    this.send('getnSPV', buf)
+
+    if (!opts.timeout) return
+    timeout = setTimeout(() => {
+      debug(`getnSPV timed out: ${opts.timeout} ms`)
+      var error = new Error('Request timed out')
+      error.timeout = true
+      cb(error)
     }, opts.timeout)
   }
 
