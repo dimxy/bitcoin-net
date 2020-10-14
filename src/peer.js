@@ -14,8 +14,8 @@ const EventEmitter = require('events')
 const pkg = require('../package.json')
 const utils = require('./utils.js')
 
-const { NSPVREQ, NSPVRESP} = require('../../../kmdtypes');
-const { nspvReq, nspvResp } = require('../../../kmdtypes');
+const { NSPVREQ, NSPVRESP} = require('bitcoin-protocol').kmdtypes;
+const { nspvReq, nspvResp } = require('bitcoin-protocol').kmdtypes;
 
 const SERVICES_SPV = Buffer.from('0800000000000000', 'hex')
 const SERVICES_FULL = Buffer.from('0100000000000000', 'hex')
