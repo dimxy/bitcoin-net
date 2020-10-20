@@ -333,8 +333,12 @@ class PeerGroup extends EventEmitter {
     this._request('getHeaders', locator, opts, cb)
   }
 
-  getUtxos (address, isCC, opts, cb) {
-    this._request('getUtxos', address, isCC, opts, cb)
+  nspvGetUtxos (address, isCC, opts, cb) {
+    this._request('nspvGetUtxos', address, isCC, opts, cb)
+  }
+
+  nspvRemoteRpc (rpcMethod, mypk, params, opts, cb) {
+    this._request('nspvRemoteRpc', rpcMethod, mypk, params, opts, cb)
   }
 
   // calls a method on a random peer,

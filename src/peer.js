@@ -401,7 +401,7 @@ class Peer extends EventEmitter {
     }, opts.timeout)
   }
 
-  getUtxos (address, isCC, opts, cb) {
+  nspvGetUtxos (address, isCC, opts, cb) {
     if (typeof opts === 'function') {
       cb = opts
       opts = {}
@@ -428,7 +428,77 @@ class Peer extends EventEmitter {
 
     if (!opts.timeout) return
     timeout = setTimeout(() => {
-      debug(`getnSPV timed out: ${opts.timeout} ms`)
+      debug(`getnSPV NSPV_UTXOSRESP timed out: ${opts.timeout} ms`)
+      var error = new Error('Request timed out')
+      error.timeout = true
+      cb(error)
+    }, opts.timeout)
+  }
+
+  nspvRemoteRpc (rpcMethod, _mypk, _params, opts, cb) {
+    if (typeof opts === 'function') {
+      cb = opts
+      opts = {}
+    }
+    if (opts.timeout == null) opts.timeout = this._getTimeout()
+
+    let mypk;
+    if (Buffer.isBuffer(_mypk))
+      mypk = _mypk.toString('hex');
+    else
+      mypk = _mypk;
+
+    let params;
+    if (Array.isArray(_params))  
+      params = JSON.stringify(_params);
+    else
+      params = '["' + _params.toString() + '"]';
+    let request = `{
+      "method": "${rpcMethod}",
+      "mypk": "${mypk}",
+      "params": ${params}
+    }`;
+
+    var timeout
+    var onNspvResp = (resp) => {
+      if (timeout) clearTimeout(timeout)
+      if (!resp || !resp.jsonSer) {
+        cb(new Error("could not parse nspv response"));
+        return;
+      }
+
+      //let resStr = resp.jsonSer.toString();
+      let result = JSON.parse(resp.jsonSer.toString());
+      if (result.error) {
+        cb(result.error);
+        return;
+      }
+      if (!resp.method) {
+        cb(new Error('null nspv response method'));
+        return;
+      }
+      let respMethod = resp.method.toString('ascii', 0, resp.method.indexOf(0x00) >= 0 ? resp.method.indexOf(0x00) : resp.method.length); // cut off ending nulls
+      if (rpcMethod !== respMethod)  {
+        cb(new Error('invalid nspv response method'));
+        return;
+      }
+      cb(null, result.result); //yes result inside result
+      //this._nextHeadersRequest()  // TODO: do we also need call to next?
+    }
+    this.once(`nSPV:${NSPVRESP.NSPV_REMOTERPCRESP}`, onNspvResp)
+
+    let jsonSer = Buffer.from(request);
+    let nspvRemoteRpcReq = {
+      reqCode: NSPVREQ.NSPV_REMOTERPC,
+      length: jsonSer.length,
+      jsonSer: jsonSer
+    }
+    let buf = nspvReq.encode(nspvRemoteRpcReq)
+    this.send('getnSPV', buf)
+
+    if (!opts.timeout) return
+    timeout = setTimeout(() => {
+      debug(`getnSPV NSPV_REMOTERPC timed out: ${opts.timeout} ms`)
       var error = new Error('Request timed out')
       error.timeout = true
       cb(error)
